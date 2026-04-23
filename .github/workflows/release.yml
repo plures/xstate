@@ -1,40 +1,26 @@
 name: Release
-
 on:
   push:
-    branches:
-      - main
-      - next
-
-concurrency: ${{ github.workflow }}-${{ github.ref }}
-
-permissions: {}
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      bump:
+        description: 'Force version bump (patch/minor/major)'
+        type: choice
+        options: [patch, minor, major]
+      target_version:
+        description: 'Exact version to release (e.g. 1.0.0). Overrides bump logic.'
+        type: string
+        required: false
+permissions:
+  contents: write
+  packages: write
+  id-token: write
 
 jobs:
   release:
-    permissions:
-      contents: write # to create release (changesets/action)
-      issues: write # to post issue comments (changesets/action)
-      pull-requests: write # to create pull request (changesets/action)
-      id-token: write # to use OpenID Connect token for provenance (changesets/action)
-
-    if: github.repository == 'statelyai/xstate'
-
-    timeout-minutes: 20
-
-    runs-on: ubuntu-latest
-
-    steps:
-      - uses: actions/checkout@v4
-      - uses: ./.github/actions/ci-setup
-      - uses: ./.github/actions/ci-checks
-
-      - name: Create Release Pull Request or Publish to npm
-        uses: changesets/action@v1
-        with:
-          publish: pnpm run release
-          version: pnpm run version
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-          NPM_CONFIG_PROVENANCE: true
+    uses: plures/.github/.github/workflows/release-reusable.yml@main
+    with:
+      bump: ${{ inputs.bump || '' }}
+      target_version: ${{ inputs.target_version || '' }}
+    secrets: inherit
